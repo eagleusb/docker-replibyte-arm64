@@ -1,0 +1,3 @@
+[submodule "Replibyte"]
+	path = replibyte
+	url = git@github.com:Qovery/Replibyte.git
