@@ -1,0 +1,16 @@
+source:
+  connection_uri: postgres://user:password@foobar.us-west-2.rds.amazonaws.com:5432/fooDatabase
+
+datastore:
+  local_disk:
+    dir: /data
+  aws:
+    bucket: <your_bucket>
+    region: us-west-2 # optional
+    credentials: # optional
+      access_key_id: XXX
+      secret_access_key: XXX
+      session_token: XXX # optional
+
+destination:
+  connection_uri: postgres://user:password@foobar.us-west-2.rds.amazonaws.com:5432/fooDatabase

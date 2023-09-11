@@ -23,6 +23,7 @@ USER root
 # create a new empty shell project
 RUN cargo new --bin replibyte
 WORKDIR /replibyte
+
 RUN cargo new --lib replibyte
 RUN cargo new --lib dump-parser
 RUN cargo new --lib subset
@@ -68,46 +69,49 @@ ENV DEBIAN_FRONTEND=noninteractive \
   LANG=en_US.UTF-8 \
   LANGUAGE=en_US.UTF-8
 
+ARG DESTINATION_CONNECTION_URI
+ARG ENCRYPTION_SECRET
+ARG S3_ACCESS_KEY_ID
+ARG S3_BUCKET
+ARG S3_REGION
+ARG S3_SECRET_ACCESS_KEY
+ARG SOURCE_CONNECTION_URI
+
+ENV DESTINATION_CONNECTION_URI $DESTINATION_CONNECTION_URI
+ENV ENCRYPTION_SECRET $ENCRYPTION_SECRET
+ENV S3_ACCESS_KEY_ID $S3_ACCESS_KEY_ID
+ENV S3_BUCKET $S3_BUCKET
+ENV S3_REGION $S3_REGION
+ENV S3_SECRET_ACCESS_KEY $S3_SECRET_ACCESS_KEY
+ENV SOURCE_CONNECTION_URI $SOURCE_CONNECTION_URI
+
 # used to configure Github Packages
 LABEL org.opencontainers.image.source https://github.com/eagleusb/docker-replibyte-arm64
 
 # Install Postgres and MySQL binaries
-RUN apt clean && apt update && apt install -qqy \
-    curl \
-    default-mysql-client \
-    postgresql-client
+RUN apt update && \
+    apt upgrade -qqy && \
+    apt install -qqy \
+        curl \
+        default-mysql-client \
+        postgresql-client && \
+    apt clean
 
 # Install MongoDB tools
 RUN curl -fsSLO "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-arm64-100.8.0.deb" && \
     dpkg -i mongodb-database-tools-*.deb && \
-    rm -f mongodb-database-tools-*.deb && \
-    rm -rf /var/lib/apt/lists/*
+    rm -f mongodb-database-tools-*.deb
+
+RUN curl -fsSLO "http://ports.ubuntu.com/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.19_arm64.deb" && \
+    dpkg -i libssl1*arm64.deb && \
+    rm -f libssl1*arm64.deb
 
 # copy the build artifact from the build stage
-COPY --from=build /replibyte/target/release/replibyte .
+COPY --from=build --chmod=755 /replibyte/target/release/replibyte /usr/local/bin
 
-COPY ./replibyte/docker/* /
-RUN chmod +x exec.sh replibyte
+COPY conf.yaml.dist /${HOME:-/root}/conf.yaml.dist
 
-ARG S3_ACCESS_KEY_ID
-ENV S3_ACCESS_KEY_ID $S3_ACCESS_KEY_ID
+WORKDIR ${HOME:-/root}
 
-ARG S3_SECRET_ACCESS_KEY
-ENV S3_SECRET_ACCESS_KEY $S3_SECRET_ACCESS_KEY
-
-ARG S3_REGION
-ENV S3_REGION $S3_REGION
-
-ARG S3_BUCKET
-ENV S3_BUCKET $S3_BUCKET
-
-ARG SOURCE_CONNECTION_URI
-ENV SOURCE_CONNECTION_URI $SOURCE_CONNECTION_URI
-
-ARG DESTINATION_CONNECTION_URI
-ENV DESTINATION_CONNECTION_URI $DESTINATION_CONNECTION_URI
-
-ARG ENCRYPTION_SECRET
-ENV ENCRYPTION_SECRET $ENCRYPTION_SECRET
-
+HEALTHCHECK NONE
 ENTRYPOINT []
